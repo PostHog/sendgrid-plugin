@@ -1,0 +1,29 @@
+{
+    "name": "sendgrid-plugin",
+    "version": "0.0.1",
+    "description": "Send emails and user data to Sendgrid when you identify users using PostHog.",
+    "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/PostHog/sendgrid-plugin.git"
+    },
+    "author": "Yakko Majuri",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/PostHog/sendgrid-plugin/issues"
+    },
+    "homepage": "https://github.com/PostHog/sendgrid-plugin#readme",
+    "devDependencies": {
+        "husky": "^4.3.0",
+        "lint-staged": "^10.5.2",
+        "prettier": "^2.2.1"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.{js,ts,tsx,json,yml}": "prettier --write"
+    }
+}
