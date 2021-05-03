@@ -12,6 +12,15 @@
             "default": "",
             "required": true,
             "secret": true
+        },
+        {
+            "key": "customProperties",
+            "hint": "Comma separated list of additional properties that will be sent to Sendgrid. Optionally, you can define an alternative key for the prop in Sendgrid. E.g. myProp1=my_prop1,myProp2=my_prop2",
+            "name": "Custom properties",
+            "type": "string",
+            "default": "",
+            "required": false,
+            "secret": false
         }
     ]
 }

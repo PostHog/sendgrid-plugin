@@ -1,4 +1,10 @@
 async function setupPlugin({ config }) {
+    try {
+        parseCustomPropertiesMap(config.customProperties)
+    } catch (e) {
+        throw new Error('Invalid format for custom properties: ' + e)
+    }
+
     const authResponse = await fetchWithRetry('https://api.sendgrid.com/v3/marketing/contacts/count', {
         headers: {
             Authorization: `Bearer ${config.sendgridApiKey}`
@@ -13,14 +19,18 @@ async function setupPlugin({ config }) {
 async function processEventBatch(events, { config }) {
     let contacts = []
     let usefulEvents = [...events].filter((e) => e.event === '$identify')
+    let sendgridExpandedPropsMap = {
+        ...sendgridPropsMap,
+        ...parseCustomPropertiesMap(config.customProperties)
+    }
 
     for (let event of usefulEvents) {
         const email = getEmailFromIdentifyEvent(event)
         if (email) {
             let sendgridFilteredProps = {}
             for (const [key, val] of Object.entries(event['$set'] ?? {})) {
-                if (sendgridPropsMap[key]) {
-                    sendgridFilteredProps[sendgridPropsMap[key]] = val
+                if (sendgridExpandedPropsMap[key]) {
+                    sendgridFilteredProps[sendgridExpandedPropsMap[key]] = val
                 }
             }
             contacts.push({ email: email, ...sendgridFilteredProps })
@@ -89,4 +99,27 @@ const sendgridPropsMap = {
     post_code: 'postal_code',
     postalCode: 'postal_code',
     postal_code: 'postal_code'
+}
+
+// parseCustomPropertiesMap parses custom properties in a format like "myProp1=my_prop1,my_prop2".
+function parseCustomPropertiesMap(customProps) {
+    const result = {}
+    if (customProps) {
+        customProps.split(',').forEach((prop) => {
+            const parts = prop.split('=')
+            if (parts.length == 1) {
+                result[parts[0]] = parts[0]
+            } else if (parts.length == 2) {
+                result[parts[0]] = parts[1]
+            } else {
+                throw new Error(`bad format in '${prop}'`)
+            }
+        })
+    }
+    return result
+}
+
+module.exports = {
+    setupPlugin,
+    parseCustomPropertiesMap
 }
