@@ -37,20 +37,22 @@ async function processEventBatch(events, { config }) {
         }
     }
 
-    const exportContactsResponse = await fetchWithRetry(
-        'https://api.sendgrid.com/v3/marketing/contacts',
-        {
-            headers: {
-                Authorization: `Bearer ${config.sendgridApiKey}`,
-                'Content-Type': 'application/json'
+    if (contacts.length > 0) {
+        const exportContactsResponse = await fetchWithRetry(
+            'https://api.sendgrid.com/v3/marketing/contacts',
+            {
+                headers: {
+                    Authorization: `Bearer ${config.sendgridApiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ contacts: contacts })
             },
-            body: JSON.stringify({ contacts: contacts })
-        },
-        'PUT'
-    )
+            'PUT'
+        )
 
-    if (!statusOk(exportContactsResponse)) {
-        throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
+        if (!statusOk(exportContactsResponse)) {
+            throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
+        }
     }
 
     return events
