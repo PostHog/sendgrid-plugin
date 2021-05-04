@@ -1,6 +1,6 @@
 async function setupPlugin({ config }) {
     try {
-        parseCustomPropertiesMap(config.customProperties)
+        parseCustomFieldsMap(config.customFields)
     } catch (e) {
         throw new Error('Invalid format for custom properties: ' + e)
     }
@@ -19,26 +19,25 @@ async function setupPlugin({ config }) {
 async function processEventBatch(events, { config }) {
     let contacts = []
     let usefulEvents = [...events].filter((e) => e.event === '$identify')
-    let sendgridExpandedPropsMap = {
-        ...sendgridPropsMap,
-        ...parseCustomPropertiesMap(config.customProperties)
-    }
+    let customFieldsMap = parseCustomFieldsMap(config.customFields)
 
     for (let event of usefulEvents) {
         const email = getEmailFromIdentifyEvent(event)
         if (email) {
             let sendgridFilteredProps = {}
+            let customFields = {}
             for (const [key, val] of Object.entries(event['$set'] ?? {})) {
-                if (sendgridExpandedPropsMap[key]) {
-                    sendgridFilteredProps[sendgridExpandedPropsMap[key]] = val
+                if (sendgridPropsMap[key]) {
+                    sendgridFilteredProps[sendgridPropsMap[key]] = val
+                } else if (customFieldsMap[key]) {
+                    customFields[customFieldsMap[key]] = val
                 }
             }
-            for (const [key, val] of Object.entries(event.properties ?? {})) {
-                if (sendgridExpandedPropsMap[key]) {
-                    sendgridFilteredProps[sendgridExpandedPropsMap[key]] = val
-                }
-            }
-            contacts.push({ email: email, ...sendgridFilteredProps })
+            contacts.push({
+                email: email,
+                ...sendgridFilteredProps,
+                custom_fields: customFields
+            })
         }
     }
 
@@ -108,8 +107,8 @@ const sendgridPropsMap = {
     postal_code: 'postal_code'
 }
 
-// parseCustomPropertiesMap parses custom properties in a format like "myProp1=my_prop1,my_prop2".
-function parseCustomPropertiesMap(customProps) {
+// parseCustomFieldsMap parses custom properties in a format like "myProp1=my_prop1,my_prop2".
+function parseCustomFieldsMap(customProps) {
     const result = {}
     if (customProps) {
         customProps.split(',').forEach((prop) => {
@@ -128,5 +127,5 @@ function parseCustomPropertiesMap(customProps) {
 
 module.exports = {
     setupPlugin,
-    parseCustomPropertiesMap
+    parseCustomFieldsMap
 }
