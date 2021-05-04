@@ -28,7 +28,7 @@ async function processEventBatch(events, { config }) {
         const email = getEmailFromIdentifyEvent(event)
         if (email) {
             let sendgridFilteredProps = {}
-            for (const [key, val] of Object.entries(event['$set'] ?? {})) {
+            for (const [key, val] of Object.entries(event.properties ?? {})) {
                 if (sendgridExpandedPropsMap[key]) {
                     sendgridFilteredProps[sendgridExpandedPropsMap[key]] = val
                 }
