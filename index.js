@@ -50,7 +50,7 @@ async function processEventBatch(events, { config }) {
     )
 
     if (!statusOk(exportContactsResponse)) {
-        throw new Error('Unable to export contacts to Sendgrid')
+        throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
     }
 
     return events
