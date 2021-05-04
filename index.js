@@ -55,7 +55,16 @@ async function processEventBatch(events, { config }) {
         )
 
         if (!statusOk(exportContactsResponse)) {
-            throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
+            let errorText = ''
+            try {
+                errorText = await exportContactsResponse.text()
+            } catch (e) {
+                // noop
+            } finally {
+                throw new Error(
+                    `Unable to export ${contacts.length} contacts to Sendgrid: ${errorText || 'cannot get error text'}`
+                )
+            }
         }
     }
 
