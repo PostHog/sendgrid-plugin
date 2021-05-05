@@ -149,7 +149,7 @@ function parseCustomFieldsMap(customProps) {
             } else if (parts.length == 2) {
                 result[parts[0]] = parts[1]
             } else {
-                throw new Error(`bad format in '${prop}'`)
+                throw new Error(`Bad format in '${prop}'`)
             }
         })
     }
