@@ -1,8 +1,5 @@
-const { getMeta, resetMeta, createEvent } = require('@posthog/plugin-scaffold/test/utils.js')
+const { getMeta, resetMeta } = require('@posthog/plugin-scaffold/test/utils.js')
 const { setupPlugin, processEventBatch } = require('../index')
-// const { newCustomerEventProps } = require('./constants')
-// const upcomingInvoiceRes = require('./upcoming-invoice.json')
-// const customersRes = require('./customers.json')
 
 global.fetch = jest.fn(async (url) => ({
     json: async () =>
@@ -17,31 +14,14 @@ global.fetch = jest.fn(async (url) => ({
     status: 200
 }))
 
-global.posthog = {
-    capture: jest.fn(() => true)
-}
-
-storage = {
-    get: jest.fn(() => ''),
-    set: jest.fn(() => '')
-}
-
-cache = {
-    get: jest.fn(() => ''),
-    set: jest.fn(() => '')
-}
-
 beforeEach(() => {
     fetch.mockClear()
-    posthog.capture.mockClear()
 
     resetMeta({
         config: {
             sendgridApiKey: 'SENDGRID_API_KEY'
         },
-        global: global,
-        storage: storage,
-        cache: cache
+        global: global
     })
 })
 
