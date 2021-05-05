@@ -5,7 +5,15 @@ const { setupPlugin, parseCustomPropertiesMap } = require('../index')
 // const customersRes = require('./customers.json')
 
 global.fetch = jest.fn(async (url) => ({
-    json: async () => {},
+    json: async () =>
+        url.includes('/field_definitions')
+            ? {
+                  custom_fields: [
+                      { id: 'field1', name: 'my_prop1' },
+                      { id: 'field2', name: 'my_prop2' }
+                  ]
+              }
+            : {},
     status: 200
 }))
 
@@ -42,7 +50,7 @@ test('setupPlugin uses sendgridApiKey', async () => {
 
     await setupPlugin(getMeta())
     expect(fetch).toHaveBeenCalledTimes(1)
-    expect(fetch).toHaveBeenCalledWith('https://api.sendgrid.com/v3/marketing/contacts/count', {
+    expect(fetch).toHaveBeenCalledWith('https://api.sendgrid.com/v3/marketing/field_definitions', {
         method: 'GET',
         headers: {
             Authorization: 'Bearer SENDGRID_API_KEY'
@@ -50,34 +58,40 @@ test('setupPlugin uses sendgridApiKey', async () => {
     })
 })
 
-test('setupPlugin fails if bad customProperties', async () => {
+test('setupPlugin fails if bad customFields format', async () => {
     resetMeta({
         config: {
             sendgridApiKey: 'SENDGRID_API_KEY',
-            customProperties: 'asf=asdf=asf'
+            customFields: 'asf=asdf=asf'
         }
     })
 
     await expect(setupPlugin(getMeta())).rejects.toThrow()
 })
 
-test('setupPlugin to accept valid customProperties', async () => {
+test('setupPlugin fails if custom field not defined in Sendgrid', async () => {
     resetMeta({
         config: {
             sendgridApiKey: 'SENDGRID_API_KEY',
-            customProperties: 'myProp1=my_prop1,my_prop2'
+            customFields: 'not_defined_custom_field'
+        }
+    })
+
+    await expect(setupPlugin(getMeta())).rejects.toThrow()
+})
+
+test('setupPlugin to accept valid customFields and parse them correctly', async () => {
+    resetMeta({
+        config: {
+            sendgridApiKey: 'SENDGRID_API_KEY',
+            customFields: 'myProp1=my_prop1,my_prop2'
         }
     })
 
     await setupPlugin(getMeta())
-})
-
-test('parseCustomPropertiesMap', async () => {
-    let inCustomProperties = 'myProp1=my_prop1,my_prop2'
-    let wantCustomPropertiesMap = {
-        myProp1: 'my_prop1',
-        my_prop2: 'my_prop2'
-    }
-
-    expect(parseCustomPropertiesMap(inCustomProperties)).toStrictEqual(wantCustomPropertiesMap)
+    const { global } = getMeta()
+    expect(global.posthogPropsToSendgridCustomFieldIDsMap).toStrictEqual({
+        myProp1: 'field1',
+        my_prop2: 'field2'
+    })
 })

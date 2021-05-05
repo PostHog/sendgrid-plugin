@@ -1,22 +1,44 @@
-async function setupPlugin({ config }) {
-    try {
-        parseCustomFieldsMap(config.customFields)
-    } catch (e) {
-        throw new Error('Invalid format for custom properties: ' + e)
-    }
-
-    const authResponse = await fetchWithRetry('https://api.sendgrid.com/v3/marketing/contacts/count', {
+async function setupPlugin({ config, global }) {
+    // With this call we validate the API Key and also we get the list of custom fields, which will be needed
+    // to configure the map between PostHog and Sendgrid.
+    const fieldsDefResponse = await fetchWithRetry('https://api.sendgrid.com/v3/marketing/field_definitions', {
         headers: {
             Authorization: `Bearer ${config.sendgridApiKey}`
         }
     })
-
-    if (!statusOk(authResponse)) {
+    if (!statusOk(fieldsDefResponse)) {
         throw new Error('Unable to connect to Sendgrid')
     }
+
+    const fieldsDef = await fieldsDefResponse.json()
+
+    // Custom fields in Sendgrid have a name and an ID. The name is what users configure when they create a custom field,
+    // and ID is automatically assigned by Sendgrid.
+    // In the config of this plugin, users configure the map between PostHog prop names and Sendgrid custom fields names.
+    // Here we resolve the relation and calculate a map between PostHog prop names and Sendgrid custom field IDs.
+
+    let posthogPropsToSendgridCustomFieldNamesMap = {}
+    try {
+        posthogPropsToSendgridCustomFieldNamesMap = parseCustomFieldsMap(config.customFields)
+    } catch (e) {
+        throw new Error('Invalid format for custom properties: ' + e)
+    }
+
+    const posthogPropsToSendgridCustomFieldIDsMap = {}
+    for (const [posthogProp, sendgridCustomFieldName] of Object.entries(posthogPropsToSendgridCustomFieldNamesMap)) {
+        const cfIndex = Object.keys(fieldsDef.custom_fields).filter(
+            (key) => fieldsDef.custom_fields[key].name === sendgridCustomFieldName
+        )
+        if (cfIndex.length !== 1) {
+            throw new Error(`Custom field with name ${sendgridCustomFieldName} is not defined in Sendgrid`)
+        }
+        posthogPropsToSendgridCustomFieldIDsMap[posthogProp] = fieldsDef.custom_fields[cfIndex].id
+    }
+
+    global.posthogPropsToSendgridCustomFieldIDsMap = posthogPropsToSendgridCustomFieldIDsMap
 }
 
-async function processEventBatch(events, { config }) {
+async function processEventBatch(events, { config, global }) {
     let contacts = []
     let usefulEvents = [...events].filter((e) => e.event === '$identify')
     let customFieldsMap = parseCustomFieldsMap(config.customFields)
@@ -30,7 +52,7 @@ async function processEventBatch(events, { config }) {
                 if (sendgridPropsMap[key]) {
                     sendgridFilteredProps[sendgridPropsMap[key]] = val
                 } else if (customFieldsMap[key]) {
-                    customFields[customFieldsMap[key]] = val
+                    customFields[config.posthogPropsToSendgridCustomFieldIDsMap[key]] = val
                 }
             }
             contacts.push({
@@ -135,6 +157,5 @@ function parseCustomFieldsMap(customProps) {
 }
 
 module.exports = {
-    setupPlugin,
-    parseCustomFieldsMap
+    setupPlugin
 }
