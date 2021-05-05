@@ -35,13 +35,13 @@ async function setupPlugin({ config, global }) {
         posthogPropsToSendgridCustomFieldIDsMap[posthogProp] = fieldsDef.custom_fields[cfIndex].id
     }
 
-    global.posthogPropsToSendgridCustomFieldIDsMap = posthogPropsToSendgridCustomFieldIDsMap
+    global.customFieldsMap = posthogPropsToSendgridCustomFieldIDsMap
 }
 
 async function processEventBatch(events, { config, global }) {
     let contacts = []
-    let usefulEvents = [...events].filter((e) => e.event === '$identify')
-    let customFieldsMap = parseCustomFieldsMap(config.customFields)
+    const usefulEvents = [...events].filter((e) => e.event === '$identify')
+    const customFieldsMap = global.customFieldsMap
 
     for (let event of usefulEvents) {
         const email = getEmailFromIdentifyEvent(event)
@@ -52,7 +52,7 @@ async function processEventBatch(events, { config, global }) {
                 if (sendgridPropsMap[key]) {
                     sendgridFilteredProps[sendgridPropsMap[key]] = val
                 } else if (customFieldsMap[key]) {
-                    customFields[config.posthogPropsToSendgridCustomFieldIDsMap[key]] = val
+                    customFields[customFieldsMap[key]] = val
                 }
             }
             contacts.push({
@@ -157,5 +157,6 @@ function parseCustomFieldsMap(customProps) {
 }
 
 module.exports = {
-    setupPlugin
+    setupPlugin,
+    processEventBatch
 }
