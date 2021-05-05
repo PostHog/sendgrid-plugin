@@ -21,7 +21,8 @@ async function setupPlugin({ config, global }) {
     try {
         posthogPropsToSendgridCustomFieldNamesMap = parseCustomFieldsMap(config.customFields)
     } catch (e) {
-        throw new Error('Invalid format for custom properties: ' + e)
+        console.error(`Invalid format for custom fields: ${e}`)
+        throw new Error('Invalid format for custom fields')
     }
 
     const posthogPropsToSendgridCustomFieldIDsMap = {}
@@ -83,9 +84,8 @@ async function processEventBatch(events, { config, global }) {
             } catch (e) {
                 // noop
             } finally {
-                throw new Error(
-                    `Unable to export ${contacts.length} contacts to Sendgrid: ${errorText || 'cannot get error text'}`
-                )
+                console.error(`Unable to export ${contacts.length} contacts to Sendgrid: ${errorText}`)
+                throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
             }
         }
     }
