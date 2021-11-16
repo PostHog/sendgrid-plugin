@@ -2,7 +2,7 @@
 
 Send emails and user data to Sendgrid when you identify users using PostHog.
 
-![Sendgrid Dashboard](readme-assets/sendgrid-dash.png)
+![Sendgrid Dashboard](https://github.com/PostHog/sendgrid-plugin/raw/main/readme-assets/sendgrid-dash.png)
 
 ## Installation
 
