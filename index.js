@@ -39,7 +39,7 @@ async function setupPlugin({ config, global }) {
     global.customFieldsMap = posthogPropsToSendgridCustomFieldIDsMap
 }
 
-async function processEventBatch(events, { config, global }) {
+async function exportEvents(events, { config, global }) {
     let contacts = []
     const usefulEvents = [...events].filter((e) => e.event === '$identify')
     const customFieldsMap = global.customFieldsMap
@@ -90,7 +90,6 @@ async function processEventBatch(events, { config, global }) {
         }
     }
 
-    return events
 }
 
 async function fetchWithRetry(url, options = {}, method = 'GET', isRetry = false) {
