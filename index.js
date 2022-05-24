@@ -157,5 +157,5 @@ function parseCustomFieldsMap(customProps) {
 
 module.exports = {
     setupPlugin,
-    processEventBatch
+    exportEvents
 }
