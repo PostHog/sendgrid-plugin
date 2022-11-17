@@ -27,7 +27,7 @@ async function setupPlugin({ config, global }) {
 
     const posthogPropsToSendgridCustomFieldIDsMap = {}
     for (const [posthogProp, sendgridCustomFieldName] of Object.entries(posthogPropsToSendgridCustomFieldNamesMap)) {
-        const cfIndex = Object.keys(fieldsDef.custom_fields).filter(
+        const cfIndex = Object.keys(fieldsDef.custom_fields || {}).filter(
             (key) => fieldsDef.custom_fields[key].name === sendgridCustomFieldName
         )
         if (cfIndex.length !== 1) {
