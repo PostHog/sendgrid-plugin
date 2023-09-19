@@ -1,7 +1,8 @@
 async function setupPlugin({ config, global }) {
     // With this call we validate the API Key and also we get the list of custom fields, which will be needed
     // to configure the map between PostHog and Sendgrid.
-    const fieldsDefResponse = await fetchWithRetry('https://api.sendgrid.com/v3/marketing/field_definitions', {
+    const fieldsDefResponse = await fetch('https://api.sendgrid.com/v3/marketing/field_definitions', {
+        method: 'GET',
         headers: {
             Authorization: `Bearer ${config.sendgridApiKey}`
         }
@@ -39,43 +40,40 @@ async function setupPlugin({ config, global }) {
     global.customFieldsMap = posthogPropsToSendgridCustomFieldIDsMap
 }
 
-async function exportEvents(events, { config, global }) {
+async function onEvent(event, { config, global }) {
+    if (event.event !== '$identify') {
+        return
+    }
     let contacts = []
-    const usefulEvents = [...events].filter((e) => e.event === '$identify')
     const customFieldsMap = global.customFieldsMap
 
-    for (let event of usefulEvents) {
-        const email = getEmailFromIdentifyEvent(event)
-        if (email) {
-            let sendgridFilteredProps = {}
-            let customFields = {}
-            for (const [key, val] of Object.entries(event['$set'] ?? {})) {
-                if (sendgridPropsMap[key]) {
-                    sendgridFilteredProps[sendgridPropsMap[key]] = val
-                } else if (customFieldsMap[key]) {
-                    customFields[customFieldsMap[key]] = val
-                }
+    const email = getEmailFromIdentifyEvent(event)
+    if (email) {
+        let sendgridFilteredProps = {}
+        let customFields = {}
+        for (const [key, val] of Object.entries(event['$set'] ?? {})) {
+            if (sendgridPropsMap[key]) {
+                sendgridFilteredProps[sendgridPropsMap[key]] = val
+            } else if (customFieldsMap[key]) {
+                customFields[customFieldsMap[key]] = val
             }
-            contacts.push({
-                email: email,
-                ...sendgridFilteredProps,
-                custom_fields: customFields
-            })
         }
+        contacts.push({
+            email: email,
+            ...sendgridFilteredProps,
+            custom_fields: customFields
+        })
     }
 
     if (contacts.length > 0) {
-        const exportContactsResponse = await fetchWithRetry(
-            'https://api.sendgrid.com/v3/marketing/contacts',
-            {
-                headers: {
-                    Authorization: `Bearer ${config.sendgridApiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ contacts: contacts })
+        const exportContactsResponse = await fetch('https://api.sendgrid.com/v3/marketing/contacts', {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${config.sendgridApiKey}`,
+                'Content-Type': 'application/json'
             },
-            'PUT'
-        )
+            body: JSON.stringify({ contacts: contacts })
+        })
 
         if (!statusOk(exportContactsResponse)) {
             let errorText = ''
@@ -88,20 +86,6 @@ async function exportEvents(events, { config, global }) {
                 throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
             }
         }
-    }
-
-}
-
-async function fetchWithRetry(url, options = {}, method = 'GET', isRetry = false) {
-    try {
-        const res = await fetch(url, { method: method, ...options })
-        return res
-    } catch {
-        if (isRetry) {
-            throw new Error(`${method} request to ${url} failed.`)
-        }
-        const res = await fetchWithRetry(url, options, (method = method), (isRetry = true))
-        return res
     }
 }
 
@@ -157,5 +141,5 @@ function parseCustomFieldsMap(customProps) {
 
 module.exports = {
     setupPlugin,
-    exportEvents
+    onEvent
 }

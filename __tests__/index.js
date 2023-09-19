@@ -1,5 +1,5 @@
 const { getMeta, resetMeta } = require('@posthog/plugin-scaffold/test/utils.js')
-const { setupPlugin, processEventBatch } = require('../index')
+const { setupPlugin, onEvent } = require('../index')
 
 global.fetch = jest.fn(async (url) => ({
     json: async () =>
@@ -76,7 +76,7 @@ test('setupPlugin to accept valid customFields and parse them correctly', async 
     })
 })
 
-test('processEventBatch to send contacts with custom fields', async () => {
+test('onEvent to send contacts with custom fields', async () => {
     resetMeta({
         config: {
             sendgridApiKey: 'SENDGRID_API_KEY',
@@ -84,28 +84,26 @@ test('processEventBatch to send contacts with custom fields', async () => {
         }
     })
 
-    const events = [
-        {
-            event: '$identify',
-            distinct_id: 'user0@example.org',
-            $set: {
-                lastName: 'User0'
-            }
-        },
-        {
-            event: '$identify',
-            $set: {
-                email: 'user1@example.org',
-                lastName: 'User1',
-                myProp1: 'foo'
-            }
+    const event = {
+        event: '$identify',
+        distinct_id: 'user0@example.org',
+        $set: {
+            lastName: 'User0'
         }
-    ]
+    }
+    const event2 = {
+        event: '$identify',
+        $set: {
+            email: 'user1@example.org',
+            lastName: 'User1',
+            myProp1: 'foo'
+        }
+    }
 
     expect(fetch).toHaveBeenCalledTimes(0)
     await setupPlugin(getMeta())
     expect(fetch).toHaveBeenCalledTimes(1)
-    await processEventBatch(events, getMeta())
+    await onEvent(event, getMeta())
     expect(fetch).toHaveBeenCalledTimes(2)
     expect(fetch).toHaveBeenCalledWith('https://api.sendgrid.com/v3/marketing/contacts', {
         method: 'PUT',
@@ -119,7 +117,20 @@ test('processEventBatch to send contacts with custom fields', async () => {
                     email: 'user0@example.org',
                     last_name: 'User0',
                     custom_fields: {}
-                },
+                }
+            ]
+        })
+    })
+    await onEvent(event2, getMeta())
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(fetch).toHaveBeenCalledWith('https://api.sendgrid.com/v3/marketing/contacts', {
+        method: 'PUT',
+        headers: {
+            Authorization: 'Bearer SENDGRID_API_KEY',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contacts: [
                 {
                     email: 'user1@example.org',
                     last_name: 'User1',
