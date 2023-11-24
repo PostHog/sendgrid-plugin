@@ -66,7 +66,7 @@ async function onEvent(event, { config, global }) {
         })
     }
     
-    console.info('got these contacts email:', email)
+    console.info('got these contacts:', contacts)
 
     if (contacts.length > 0) {
         const exportContactsResponse = await fetch('https://api.sendgrid.com/v3/marketing/contacts', {
@@ -77,6 +77,8 @@ async function onEvent(event, { config, global }) {
             },
             body: JSON.stringify({ contacts: contacts })
         })
+        
+        console.info('sending request to response', exportContactsResponse)
 
         if (!statusOk(exportContactsResponse)) {
             let errorText = ''
