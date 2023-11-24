@@ -48,6 +48,7 @@ async function onEvent(event, { config, global }) {
     const customFieldsMap = global.customFieldsMap
 
     const email = getEmailFromIdentifyEvent(event)
+    console.info('got the following email:', email)
     if (email) {
         let sendgridFilteredProps = {}
         let customFields = {}
@@ -64,6 +65,8 @@ async function onEvent(event, { config, global }) {
             custom_fields: customFields
         })
     }
+    
+    console.info('got these contacts email:', email)
 
     if (contacts.length > 0) {
         const exportContactsResponse = await fetch('https://api.sendgrid.com/v3/marketing/contacts', {
@@ -86,6 +89,8 @@ async function onEvent(event, { config, global }) {
                 throw new Error(`Unable to export ${contacts.length} contacts to Sendgrid`)
             }
         }
+    } else {
+        console.info('no contacts, skipping...')
     }
 }
 
