@@ -113,6 +113,52 @@ describe('plugin tests', () => {
         })
     })
 
+    test('returns null for event other than $identify', async () => {
+        if (!setupPlugin || !composeWebhook) {
+            throw new Error('Not implemented')
+        }
+
+        const mockEvent = {
+            uuid: '10000000-0000-4000-0000-000000000000',
+            team_id: 1,
+            distinct_id: '1234',
+            event: 'my-event',
+            timestamp: new Date(),
+            properties: {
+                $ip: '127.0.0.1',
+                $elements_chain: 'div:nth-child="1"nth-of-type="2"text="text"',
+                foo: 'bar',
+            },
+        }
+
+        setupPlugin(meta)
+
+        expect(composeWebhook(mockEvent, meta)).toBeNull()
+    })
+
+    test('returns null for event missing email', async () => {
+        if (!setupPlugin || !composeWebhook) {
+            throw new Error('Not implemented')
+        }
+
+        const mockEvent = {
+            uuid: '10000000-0000-4000-0000-000000000000',
+            team_id: 1,
+            distinct_id: '1234',
+            event: '$identify',
+            timestamp: new Date(),
+            properties: {
+                $ip: '127.0.0.1',
+                $elements_chain: 'div:nth-child="1"nth-of-type="2"text="text"',
+                foo: 'bar',
+            },
+        }
+
+        setupPlugin(meta)
+
+        expect(composeWebhook(mockEvent, meta)).toBeNull()
+    })
+
     test('composeWebhooks to send contacts with custom fields', async () => {
         if (!setupPlugin || !composeWebhook) {
             throw new Error('Not implemented')
